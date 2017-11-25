@@ -1,0 +1,79 @@
+//Lagrange
+#include <iostream>
+#include <ctime>
+#include <cstring>
+
+using namespace std;
+const int n = 5;
+const double a = 2;
+const double b = 7;
+
+double f(double x)
+{
+	return x * x - 1 - log(x);//#18
+	//return abs(x) * (x * x - 1 - log(x));
+}
+
+double P(double arrx[n + 1], double x)
+{
+	double rez = 0;
+	for (int k = 0; k < n + 1; k++)
+	{
+		double tmp1 = 1, tmp2 = 1;
+		for (int i = 0; i < n + 1; i++)
+		{
+			if (i == k)
+				continue;
+			else
+			{
+				tmp1 *= (x - arrx[i]);
+				tmp2 *= (arrx[k] - arrx[i]);
+			}
+		}
+		rez += f(arrx[k]) * tmp1 / tmp2;
+	}
+	return rez;
+}
+
+int main()
+{
+	double arrx1[n + 1];
+	double arrx2[n + 1];
+
+	double a1 = a;
+	for (int i = 0; i < n + 1; i++)
+	{
+		arrx1[i] = a1;
+		a1 += (b - a) / n;
+	}
+
+	double pi = 3.1416;
+	for (int i = 0; i < n + 1; i++)
+		arrx2[i] = ((b - a) * cos((2 * i + 1)* pi / (2 * n + 2) ) + b + a) / 2;
+
+	double arrx[n + 1];
+	for (int i = 0; i < n + 1; i++)
+		//arrx[i] = arrx1[i];
+		arrx[i] = arrx2[i];
+
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n - i; j++)
+			if (arrx[j] > arrx[j + 1])
+				swap(arrx[j], arrx[j + 1]);//min->max
+
+	cout << "[a,b] : n" << endl;
+	//cout << "Formula 3.2" << endl;
+	cout << "x" << "\t";
+	cout << "f(x)" << "\t";
+	cout << "Pn(x)" << "\t";
+	cout << "f(x) - Pn(x)" << endl << endl;
+	double x0 = arrx[0], eps = 0.05;
+	while (x0 <= arrx[n])
+	{
+		cout << round(x0 * 1000000) / 1000000 << "\t" << round(f(x0) * 1000000) / 1000000 << "\t" << round(P(arrx, x0) * 1000000) / 1000000 << "\t" << round((f(x0) - P(arrx, x0)) * 1000000) / 1000000 << endl;
+		x0 += eps;
+	}
+
+	system("pause");
+	return 0;
+}
