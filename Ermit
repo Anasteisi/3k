@@ -1,0 +1,123 @@
+//Ermit
+#include <iostream>
+#include <ctime>
+#include <cstring>
+
+using namespace std;
+const double pi = 3.1416;
+const int n = 4;
+const int p = 3;
+const double a = -1*pi/10;
+const double b = pi/10;
+
+double f(double x)
+{
+	return x * x - sin (10 * x);//#14
+}
+
+double fdxk(double x, int k)
+{
+	if (k == 1)
+		return 2 * x - 10 * cos(10 * x);
+	if (k == 2)
+		return 2  + 10 * 10 * sin(10 * x);
+	else
+	{
+		if (k % 2 != 0)//nechet
+		{
+			int tmp = k / 4;
+			if ((k - tmp * 4) == 3)
+				return pow(10, k) * cos(10 * x);
+			else//==1
+				return -1 * pow(10, k) * cos(10 * x);
+		}
+		else
+		{
+			if (k % 4 != 0)
+				return pow(10, k) * sin(10 * x);
+			else
+				return -1 * pow(10, k) * sin(10 * x);
+		}
+	}
+}
+
+double factorial(int r)
+{
+	if (r == 0 || r == 1)
+		return 1;
+	return r*factorial(r - 1);
+}
+
+double P(double arrx[n + 1], double x)
+{
+	double rez = 0;
+	double arrz[(n + 1) * (p + 1)];
+	for (int l = 0; l < n + 1; l++)
+		for (int m = 0; m < p + 1; m++)
+			arrz[m + l * (p + 1)] = arrx[l];//+ p klon
+	double arrdiv[(n + 1) * (p + 1)][(n + 1) * (p + 1)];//tabl razd razn
+	for (int i = 0; i < (n + 1) * (p + 1); i++)
+		for (int j = 0; j < (n + 1) * (p + 1); j++)
+			arrdiv[i][j] = 0;
+	for (int i = 0; i < (n + 1) * (p + 1); i++)
+		arrdiv[i][0] = f(arrz[i]);
+	for (int j = 1; j < (n + 1) * (p + 1); j++)
+		for (int i = 0; i < (n + 1) * (p + 1) - j; i++)
+		{
+			if ((arrz[i + j] - arrz[i]) != 0)
+				arrdiv[i][j] = (arrdiv[i + 1][j - 1] - arrdiv[i][j - 1]) / (arrz[i + j] - arrz[i]);
+			else
+				arrdiv[i][j] = fdxk(arrz[i + j - 1], j) / factorial(j);
+		}
+	for (int j = 0; j < (p + 1) * (n + 1); j++)
+	{
+		double tmp = 1;
+		for (int i = 0; i < j; i++)
+			tmp *= (x - arrz[i]);
+		rez += tmp * arrdiv[0][j];
+	}
+	return rez;
+}
+
+int main()
+{
+	double arrx1[n + 1];
+	double arrx2[n + 1];
+
+	double a1 = a;
+	for (int i = 0; i < n + 1; i++)
+	{
+		arrx1[i] = a1;
+		a1 += (b - a) / n;
+	}
+
+	double pi = 3.1416;
+	for (int i = 0; i < n + 1; i++)
+		arrx2[i] = ((b - a) * cos((2 * i + 1)* pi / (2 * n + 2)) + b + a) / 2;
+
+	double arrx[n + 1];
+	for (int i = 0; i < n + 1; i++)
+		arrx[i] = arrx1[i];
+		//arrx[i] = arrx2[i];
+
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n - i; j++)
+			if (arrx[j] > arrx[j + 1])
+				swap(arrx[j], arrx[j + 1]);//min->max
+
+	//cout << "[a,b] : n" << endl;
+	cout << "Formula 3.2" << endl;
+	cout << "x" << "\t";
+	cout << "f(x)" << "\t";
+	cout << "Pn(x)" << "\t";
+	cout << "f(x) - Pn(x)" << endl << endl;
+	double x0 = a, eps = 0.05;
+	while (x0 <= b)
+	{
+		cout << round(x0 * 1000000) / 1000000 << "\t" << round(f(x0) * 1000000) / 1000000 << "\t" << round(P(arrx, x0) * 1000000) / 1000000 << "\t" << round((f(x0) - P(arrx, x0)) * 1000000) / 1000000 << endl;
+		x0 += eps;
+	}
+	
+	system("pause");
+	return 0;
+}
