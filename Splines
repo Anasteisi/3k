@@ -1,0 +1,178 @@
+//Splines
+#include<iostream>
+using namespace std;
+const int n = 4;
+const int row_num = n * 3, col_num = n * 3 + 1;
+const double a = 5;
+const double b = 7;
+
+double f(double x)
+{
+	return x * x - sin(10 * x);//#14
+}
+
+double Si(double ai, double bi, double ci, double x)
+{
+	return ai * x * x + bi * x + ci;
+}
+
+void partially_pivot(double arr[row_num][col_num], int pivot_row, int pivot_col) // for GJ
+{
+	double temp;
+	int i, large_pivot_row = pivot_row;
+
+	for (i = pivot_row; i < row_num; i++)
+		if (arr[i][pivot_col] > arr[large_pivot_row][pivot_col])
+			large_pivot_row = i;
+
+	if (pivot_row != large_pivot_row)
+		for (i = 0; i < col_num; i++)
+		{
+			temp = arr[large_pivot_row][i];
+			arr[large_pivot_row][i] = arr[pivot_row][i];
+			arr[pivot_row][i] = temp;
+		}
+}
+
+int main()
+{
+	double arrx1[n + 1];
+	double arrx2[n + 1];
+
+	double tmp1 = a;
+	for (int i = 0; i < n + 1; i++)
+	{
+		arrx1[i] = tmp1;
+		tmp1 += (b - a) / n;
+	}
+
+	double pi = 3.1416;
+	for (int i = 0; i < n + 1; i++)
+		arrx2[i] = ((b - a) * cos((2 * i + 1)* pi / (2 * n + 2)) + b + a) / 2;
+
+	double arrx[n + 1];
+	for (int i = 0; i < n + 1; i++)
+		arrx[i] = arrx1[i];
+		//arrx[i] = arrx2[i];
+
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n - i; j++)
+			if (arrx[j] > arrx[j + 1])
+				swap(arrx[j], arrx[j + 1]);//min->max
+
+	double arrkoef[row_num][col_num];
+	for (int i = 0; i < row_num; i++)
+		for (int j = 0; j < col_num; j++)
+			arrkoef[i][j] = 0;
+
+	//S0(x) = a0 * x ^ 2 + b0 * x + c0 [x0 x1]
+	//S1(x) = a1 * x ^ 2 + b1 * x + c1 [x1 x2]
+	//S2(x) = a2 * x ^ 2 + b2 * x + c2 [x2 x3]
+	//S3(x) = a3 * x ^ 2 + b3 * x + c3 [x3 x4]
+
+	//a0 * x ^ 2 + b0 * x + c0 = f(x) for x0
+	//a0 * x ^ 2 + b0 * x + c0 = f(x) for x1
+	//a1 * x ^ 2 + b1 * x + c1 = f(x) for x1
+	//a1 * x ^ 2 + b1 * x + c1 = f(x) for x2
+	//a2 * x ^ 2 + b2 * x + c2 = f(x) for x2
+	//a2 * x ^ 2 + b2 * x + c2 = f(x) for x3
+	//a3 * x ^ 2 + b3 * x + c3 = f(x) for x3
+	//a3 * x ^ 2 + b3 * x + c3 = f(x) for x4
+	//S0'(x) - S1'(x) = 2 * a0 * x + b0 - 2 * a1 * x - b1 = 0 for x1
+	//S0'(x) - S1'(x) = 2 * a1 * x + b1 - 2 * a2 * x - b2 = 0 for x2
+	//S0'(x) - S1'(x) = 2 * a2 * x + b2 - 2 * a3 * x - b3 = 0 for x3
+	//S0'(x) = 2 * a0 * x + b0 = 0 for x0
+
+	//a0 a1 a2 a3 b0 b1 b2 b3 c0 c1 c2 c3 B
+	//  0  1 2  3  4  5  6  7  8  9  10 11 12
+	//0 x0^2 0 0 0 x0 0 0 0 1 0 0 0 f(x0)
+	//1 x1^2 0 0 0 x1 0 0 0 1 0 0 0 f(x1)
+	//2 0 x1^2 0 0 0 x1 0 0 0 1 0 0 f(x1)
+	//3 0 x2^2 0 0 0 x2 0 0 0 1 0 0 f(x2)
+	//4 0 0 x2^2 0 0 0 x2 0 0 0 1 0 f(x2)
+	//5 0 0 x3^2 0 0 0 x3 0 0 0 1 0 f(x3)
+	//6 0 0 0 x3^2 0 0 0 x3 0 0 0 1 f(x3)
+	//7 0 0 0 x4^2 0 0 0 x4 0 0 0 1 f(x4)
+	//8 2*x1 -2*x1 0 0 1 -1 0 0 0 0 0 0 0
+	//9 0 2*x2 -2*x2 0 0 1 -1 0 0 0 0 0 0 
+	//10 0 0 2*x3 -2*x3 0 0 1 -1 0 0 0 0 0
+	//11 2*x0 0 0 0 1 0 0 0 0 0 0 0 0
+
+	arrkoef[0][0] = arrx[0] * arrx[0]; arrkoef[0][4] = arrx[0]; arrkoef[0][8] = 1; arrkoef[0][12] = f(arrx[0]);
+	arrkoef[1][0] = arrx[1] * arrx[1]; arrkoef[1][4] = arrx[1]; arrkoef[1][8] = 1; arrkoef[1][12] = f(arrx[1]);
+	arrkoef[2][1] = arrx[1] * arrx[1]; arrkoef[2][5] = arrx[1]; arrkoef[2][9] = 1; arrkoef[2][12] = f(arrx[1]);
+	arrkoef[3][1] = arrx[2] * arrx[2]; arrkoef[3][5] = arrx[2]; arrkoef[3][9] = 1; arrkoef[3][12] = f(arrx[2]);
+	arrkoef[4][2] = arrx[2] * arrx[2]; arrkoef[4][6] = arrx[2]; arrkoef[4][10] = 1; arrkoef[4][12] = f(arrx[2]);
+	arrkoef[5][2] = arrx[3] * arrx[3]; arrkoef[5][6] = arrx[3]; arrkoef[5][10] = 1; arrkoef[5][12] = f(arrx[3]);
+	arrkoef[6][3] = arrx[3] * arrx[3]; arrkoef[6][7] = arrx[3]; arrkoef[6][11] = 1; arrkoef[6][12] = f(arrx[3]);
+	arrkoef[7][3] = arrx[4] * arrx[4]; arrkoef[7][7] = arrx[4]; arrkoef[7][11] = 1; arrkoef[7][12] = f(arrx[4]);
+	arrkoef[8][0] = 2 * arrx[1]; arrkoef[8][1] = -2 * arrx[1]; arrkoef[8][4] = 1; arrkoef[8][5] = -1;
+	arrkoef[9][1] = 2 * arrx[2]; arrkoef[9][2] = -2 * arrx[2]; arrkoef[9][5] = 1; arrkoef[9][6] = -1;
+	arrkoef[10][2] = 2 * arrx[3]; arrkoef[10][3] = -2 * arrx[3]; arrkoef[10][6] = 1; arrkoef[10][7] = -1;
+	arrkoef[11][0] = 2 * arrx[0]; arrkoef[11][4] = 1;
+
+	double diagonal_element = 0, flag = 0;
+	for (int i = 0; i < row_num; i++)//GJ
+		for (int j = 0; j < col_num; j++)
+			if (i == j)
+			{
+				partially_pivot(arrkoef, i, j);
+				diagonal_element = arrkoef[i][j];
+				for (int l = 0; l < col_num; l++)
+					arrkoef[i][l] /= diagonal_element;
+
+				for (int k = 0; k < row_num; k++)
+				{
+					flag = arrkoef[k][j];
+					for (int l = 0; l < col_num; l++)
+						if (k != i)
+							arrkoef[k][l] = (arrkoef[k][l]) - flag * (arrkoef[i][l]);
+
+				}
+			}
+
+	/*for (int i = 0; i < row_num; i++)
+	{
+	for (int j = 0; j < col_num; j++)
+	cout << arrkoef[i][j] << " ";
+	cout << endl;
+	}
+	cout << endl;*/
+
+	double a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3;
+	a0 = arrkoef[0][12]; a1 = arrkoef[1][12]; a2 = arrkoef[2][12]; a3 = arrkoef[3][12];
+	b0 = arrkoef[4][12]; b1 = arrkoef[5][12]; b2 = arrkoef[6][12]; b3 = arrkoef[7][12];
+	c0 = arrkoef[8][12]; c1 = arrkoef[9][12]; c2 = arrkoef[10][12]; c3 = arrkoef[11][12];
+
+	cout << "[a,b] : n" << endl;
+	cout << "x" << "\t";
+	cout << "f(x)" << "\t";
+	cout << "Sn(x)" << "\t";
+	cout << "f(x) - Sn(x)" << endl << endl;
+	double x0 = arrx[0], eps = 0.05;
+	while (x0 <= arrx[4])
+	{
+		cout << round(x0 * 1000) / 1000 << "\t" << round(f(x0) * 1000) / 1000 << "\t";
+		if (x0 >= arrx[0] && x0 < arrx[1])
+			cout << round(Si(a0, b0, c0, x0) * 1000) / 1000 << "\t" << round((f(x0) - Si(a0, b0, c0, x0)) * 1000) / 1000 << endl;
+		if (x0 >= arrx[1] && x0 < arrx[2])
+			cout << round(Si(a1, b1, c1, x0) * 1000) / 1000 << "\t" << round((f(x0) - Si(a1, b1, c1, x0)) * 1000) / 1000 << endl;
+		if (x0 >= arrx[2] && x0 < arrx[3])
+			cout << round(Si(a2, b2, c2, x0) * 1000) / 1000 << "\t" << round((f(x0) - Si(a2, b2, c2, x0)) * 1000) / 1000 << endl;
+		if (x0 >= arrx[3] && x0 <= arrx[4])
+			cout << round(Si(a3, b3, c3, x0) * 1000) / 1000 << "\t" << round((f(x0) - Si(a3, b3, c3, x0)) * 1000) / 1000 << endl;
+		x0 += eps;
+	}
+	cout << "Points:" << endl;
+	cout << "xk" << "\t";
+	cout << "f(xk)" << "\t";
+	cout << "S(k-1)" << "\t";
+	cout << "S(k)" << "\t";
+	cout << "S(k-1) - Sk" << endl << endl;
+	cout << round(arrx[1] * 1000) / 1000 << "\t" << round(f(arrx[1]) * 1000) / 1000 << "\t" << round(Si(a0, b0, c0, arrx[1]) * 1000) / 1000 << "\t" << round(Si(a1, b1, c1, arrx[1]) * 1000) / 1000 << "\t" << round((Si(a0, b0, c0, arrx[1]) - Si(a1, b1, c1, arrx[1])) * 1000) / 1000 << endl;
+	cout << round(arrx[2] * 1000) / 1000 << "\t" << round(f(arrx[2]) * 1000) / 1000 << "\t" << round(Si(a1, b1, c1, arrx[2]) * 1000) / 1000 << "\t" << round(Si(a2, b2, c2, arrx[2]) * 1000) / 1000 << "\t" << round((Si(a1, b1, c1, arrx[2]) - Si(a2, b2, c2, arrx[2])) * 1000) / 1000 << endl;
+	cout << round(arrx[3] * 1000) / 1000 << "\t" << round(f(arrx[3]) * 1000) / 1000 << "\t" << round(Si(a2, b2, c2, arrx[3]) * 1000) / 1000 << "\t" << round(Si(a3, b3, c3, arrx[3]) * 1000) / 1000 << "\t" << round((Si(a2, b2, c2, arrx[3]) - Si(a3, b3, c3, arrx[3])) * 1000) / 1000 << endl;
+
+	system("pause");
+	return 0;
+}
