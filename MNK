@@ -1,0 +1,134 @@
+#include<iostream>
+using namespace std;
+const int n = 100;
+const int m = 3;
+const int row_num = m + 1;
+const int col_num = m + 2;
+const double a = -1;
+const double b = 1;
+
+double f(double x)
+{
+	return x * x + sin(x);//#10
+}
+
+double fik(int k, double x)
+{
+	return pow(x, k);
+}
+
+double Pm(double arrA[m + 1], double x)
+{
+	double rez = 0;
+	for (int i = 0; i < m + 1; i++)
+		rez += arrA[i] * fik(i, x);
+	return rez;
+}
+
+void partially_pivot(double arr[row_num][col_num], int pivot_row, int pivot_col) // for GJ
+{
+	int i, large_pivot_row = pivot_row;
+
+	for (i = pivot_row; i < row_num; i++)
+		if (arr[i][pivot_col] > arr[large_pivot_row][pivot_col])
+			large_pivot_row = i;
+
+	if (pivot_row != large_pivot_row)
+		for (i = 0; i < col_num; i++)
+			swap(arr[large_pivot_row][i], arr[pivot_row][i]);
+}
+
+int main()
+{
+	double arrx1[n + 1];
+	double arrx2[n + 1];
+
+	double tmp1 = a;
+	for (int i = 0; i < n + 1; i++)
+	{
+		arrx1[i] = tmp1;
+		tmp1 += (b - a) / n;
+	}
+
+	double pi = 3.1416;
+	for (int i = 0; i < n + 1; i++)
+		arrx2[i] = ((b - a) * cos((2 * i + 1)* pi / (2 * n + 2)) + b + a) / 2;
+
+	double arrx[n + 1];
+	for (int i = 0; i < n + 1; i++)
+		arrx[i] = arrx1[i];
+		//arrx[i] = arrx2[i];
+
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n - i; j++)
+			if (arrx[j] > arrx[j + 1])
+				swap(arrx[j], arrx[j + 1]);//min->max
+
+	double arry[n + 1];
+	for (int i = 0; i < n + 1; i++)
+		arry[i] = f(arrx[i]) + pow(-1, i % 2)*pow(0.1, i % 3);
+
+	double matrQ[n + 1][m + 1];
+	for (int i = 0; i < n + 1; i++)
+		for (int j = 0; j < m + 1; j++)
+			matrQ[i][j] = fik(j, arrx[i]);
+
+	double matrHb[m + 1][m + 2];
+
+	for (int i = 0; i < m + 1; i++)
+		for (int j = 0; j < m + 1; j++)
+		{
+			double tmp2 = 0;
+			for (int r = 0; r < n + 1; r++)
+				tmp2 += matrQ[r][i] * matrQ[r][j];//QT*Q
+			matrHb[i][j] = tmp2;
+		}
+
+	for (int i = 0; i < m + 1; i++)
+	{
+		double tmp2 = 0;
+		for (int r = 0; r < n + 1; r++)
+			tmp2 += matrQ[r][i] * arry[r];//QT*y
+		matrHb[i][m + 1] = tmp2;
+	}
+
+	double diagonal_element = 0, flag = 0;
+	for (int i = 0; i < row_num; i++)//GJ
+		for (int j = 0; j < col_num; j++)
+			if (i == j)
+			{
+				partially_pivot(matrHb, i, j);
+				diagonal_element = matrHb[i][j];
+				for (int l = 0; l < col_num; l++)
+					matrHb[i][l] /= diagonal_element;
+
+				for (int k = 0; k < row_num; k++)
+				{
+					flag = matrHb[k][j];
+					for (int l = 0; l < col_num; l++)
+						if (k != i)
+							matrHb[k][l] = (matrHb[k][l]) - flag * (matrHb[i][l]);
+				}
+			}
+
+	double arrA[m + 1];
+	for (int i = 0; i < m + 1; i++)
+		arrA[i] = matrHb[i][m + 1];
+
+	cout << "[a,b] : n" << endl;
+	//cout << "Formula 3.2" << endl;
+	cout << "x" << "\t";
+	cout << "f(x)" << "\t";
+	cout << "Pm(x)" << "\t";
+	cout << "f(x) - Pm(x)" << endl << endl;
+	double x0 = arrx[0], eps = 0.05;
+
+	while (x0 <= arrx[n])
+	{
+		cout << round(x0 * 1000) / 1000 << "\t" << round(f(x0) * 1000) / 1000 << "\t" << round(Pm(arrA, x0) * 1000) / 1000 << "\t" << round((f(x0) - Pm(arrA, x0)) * 1000) / 1000 << endl;
+		x0 += eps;
+	}
+
+	system("pause");
+	return 0;
+}
