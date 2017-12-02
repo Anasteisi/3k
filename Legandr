@@ -1,0 +1,58 @@
+#include<iostream>
+using namespace std;
+const int m = 3;
+const double delta = 0.0001;
+const double a = -1;
+const double b = 1;
+
+double f(double x)
+{
+	return x * x + sin(x);//#10
+}
+
+double Lp(int p, double x)
+{
+	if (p == 0)
+		return 1;
+	if (p == 1)
+		return x;
+	return ((2 * p - 1) * x * Lp(p - 1, x) - (p - 1) * Lp(p - 2, x)) / p;
+}
+
+double Qm(double x)
+{
+	double rez = 0;
+	double tmp1 = 0, tmp2 = 0;
+	double x0 = a, x1 = x0 + delta;
+	for (int i = 0; i < m + 1; i++)
+	{
+		while (x1 <= b)
+		{
+			tmp1 += f((x1 + x0) / 2)*Lp(i, (x1 + x0) / 2)*(x1 - x0);
+			tmp2 += Lp(i, (x1 + x0) / 2)*Lp(i, (x1 + x0) / 2)*(x1 - x0);
+			x0 = x1; x1 += delta;
+		}
+		rez += (tmp1 / tmp2)*Lp(i, x);
+		x0 = a, x1 = x0 + delta;
+		tmp1 = 0, tmp2 = 0;
+	}
+	return rez;
+}
+
+int main()
+{
+	cout << "x" << "\t";
+	cout << "f(x)" << "\t";
+	cout << "Qm(x)" << "\t";
+	cout << "f(x) - Qm(x)";
+	cout << endl;
+	double x0 = a, eps = 0.05;
+	while (x0 <= b)
+	{
+		cout << round(x0 * 1000) / 1000 << "\t" << round (f(x0) * 1000) / 1000 << "\t" << round(Qm(x0) * 1000) / 1000 << "\t" << round((f(x0) - Qm(x0)) * 1000) / 1000 << endl;
+		x0 += eps;
+	}
+
+	system("pause");
+	return 0;
+}
