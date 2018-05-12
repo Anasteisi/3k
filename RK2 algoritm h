@@ -1,0 +1,258 @@
+//RK2 x y~ y Rn |Rn| algoritm h
+#include<iostream>
+#include <cmath>
+using namespace std;
+const double a = 0, b = 5;
+const double kstart = 10000;//parts
+const double hstart = (b - a) / kstart;
+
+const double p = 2, s = 2;
+
+const double c2 = 0.2;
+const double A = 2, B = -1, C = -1;//#4, #29
+
+const double a21 = c2;
+const double b2 = 1 / (2 * c2);
+const double b1 = 1 - b2;
+
+const double e = 2.71828;
+
+const double tol = 0.001;
+
+double f1(double x, double y2, double y4)
+{
+	return 2 * x*pow(y2, 1 / B)*y4;
+}
+
+double f2(double x, double y3, double y4)
+{
+	return 2 * B*x*pow(e, B / C*(y3 - A))*y4;
+}
+
+double f3(double x, double y4)
+{
+	return  2 * C*x*y4;
+}
+
+double f4(double x, double y1)
+{
+	return -2 * x*log(y1);
+}
+
+void RK2(double h, double vector0[5], double vector1[5])
+{
+	vector1[0] = vector0[0] + h;
+	for (int i = 1; i < 5; i++)
+		vector1[i] = vector0[i];
+
+	double K1 = h*f1(vector0[0], vector0[2], vector0[4]);
+	double K2 = h*f1(vector0[0] + c2*h, vector0[2] + a21*K1, vector0[4] + a21*K1);
+	vector1[1] += b1*K1 + b2*K2;
+
+	K1 = h*f2(vector0[0], vector0[3], vector0[4]);
+	K2 = h*f2(vector0[0] + c2*h, vector0[3] + a21*K1, vector0[4] + a21*K1);
+	vector1[2] += b1*K1 + b2*K2;
+
+	K1 = h*f3(vector0[0], vector0[4]);
+	K2 = h*f3(vector0[0] + c2*h, vector0[4] + a21*K1);
+	vector1[3] += b1*K1 + b2*K2;
+
+	K1 = h*f4(vector0[0], vector0[1]);
+	K2 = h*f4(vector0[0] + c2*h, vector0[1] + a21*K1);
+	vector1[4] += b1*K1 + b2*K2;
+}
+
+double yrez(int flag, double x)
+{
+	if (flag == 0)
+		return x;
+	if (flag == 1)
+		return pow(e, sin(x*x));
+	if (flag == 2)
+		return pow(e, B*sin(x*x));
+	if (flag == 3)
+		return C*sin(x*x) + A;
+	if (flag == 4)
+		return cos(x*x);
+}
+
+void Rnfull(double h, double vector[5], double vectorn[5], double Rn[5])
+{
+	double vector0[5];
+	for (int i = 0; i < 5; i++)
+		vector0[i] = vector[i];
+
+	double vector2n[5];
+
+	while (vector0[0] < vectorn[0])
+	{
+		RK2(h / 2, vector0, vector2n);
+		for (int i = 0; i < 5; i++)
+			vector0[i] = vector2n[i];
+	}
+
+	for (int i = 0; i < 5; i++)
+	{
+		Rn[i] = vector2n[i] - vectorn[i];
+		Rn[i] /= (1 - pow(2, -1 * p));///R2n (pow(2, p) - 1)
+	}
+}
+
+void rnlocal(double h, double vectornmin1[5], double vectorn[5], double rn[5])
+{
+	double vectornnmin10[5];
+	for (int i = 0; i < 5; i++)
+		vectornnmin10[i] = vectornmin1[i];
+
+	double vector2n[5];
+
+	while (vectornnmin10[0] < vectorn[0])
+	{
+		RK2(h / 2, vectornnmin10, vector2n);
+
+		for (int i = 0; i < 5; i++)
+			vectornnmin10[i] = vector2n[i];
+	}
+
+	for (int i = 0; i < 5; i++)
+	{
+		rn[i] = vector2n[i] - vectorn[i];
+		rn[i] /= (1 - pow(2, -1 * p));///r2n (pow(2, p) - 1)
+	}
+}
+
+double norma(double vector[5])
+{
+	double tmp = 0;
+	for (int i = 1; i < 5; i++)
+		tmp += vector[i] * vector[i];
+	return sqrt(tmp);
+}
+
+double max(double a, double b)
+{
+	if (a > b)
+		return a;
+	else
+		return b;
+}
+
+int main()
+{
+	double vector[5];
+	vector[0] = 0;//x0
+	vector[1] = 1, vector[2] = 1, vector[3] = A, vector[4] = 1;//y1,y2,y3,y4 0
+
+	double vector0[5];
+	for (int i = 0; i < 5; i++)
+		vector0[i] = vector[i];
+
+	double h = hstart, k = kstart;
+
+	double f0[5];
+	f0[0] = vector0[0];
+	f0[1] = f1(vector0[0], vector0[2], vector0[4]);
+	f0[2] = f2(vector0[0], vector0[3], vector0[4]);
+	f0[3] = f3(vector0[0], vector0[4]);
+	f0[4] = f4(vector0[0], vector0[1]);
+
+	double delta = pow(1 / max(a, b), p + 1) + pow(norma(f0), p + 1);
+	h = pow(tol / delta, 1 / (p + 1));
+
+	//Eiler x1=x0+h; y1=y0+h*f(x0,y0);
+
+	vector0[1] += h*f1(vector0[0], vector0[2], vector0[4]);
+	vector0[2] += h*f2(vector0[0], vector0[3], vector0[4]);
+	vector0[3] += h*f3(vector0[0], vector0[4]);
+	vector0[4] += h*f4(vector0[0], vector0[1]);
+
+	vector0[0] = vector0[0] + h;
+
+	f0[0] = vector0[0];
+	f0[1] = f1(vector0[0], vector0[2], vector0[4]);
+	f0[2] = f2(vector0[0], vector0[3], vector0[4]);
+	f0[3] = f3(vector0[0], vector0[4]);
+	f0[4] = f4(vector0[0], vector0[1]);
+
+	delta = pow(1 / max(a, b), p + 1) + pow(norma(f0), p + 1);
+	double hh = pow(tol / delta, 1 / (p + 1));
+
+	if (h > hh)
+		h = hh;
+
+	double vector1[5];
+	double rn[5];
+	double Rn[5];
+
+	for (int i = 0; i < 5; i++)
+		vector0[i] = vector[i];
+	
+	cout << fixed;
+	cout.precision(5);
+
+	cout << "Result RK2: " << endl;
+	cout << "x\t y~\t y\t" << endl;
+
+	while (vector1[0] < b)
+	{
+		RK2(h, vector0, vector1);
+		rnlocal(h, vector0, vector1, rn);
+		Rnfull(h, vector, vector1, Rn);
+
+		double rnloc = norma(rn);
+
+		if (rnloc > tol*pow(2, p))
+		{
+			h /= 2;
+			continue;
+		}
+
+		if (rnloc <= tol*pow(2, p) && rnloc > tol)
+		{
+			h /= 2;
+			RK2(h, vector0, vector1);
+			for (int i = 0; i < 5; i++)
+				vector0[i] = vector1[i];
+			RK2(h, vector0, vector1);
+		}
+
+		if (rnloc <= tol && rnloc > tol / pow(2, p + 1))
+			h = h;
+
+		if (rnloc < tol / pow(2, p + 1))
+			h *= 2;
+
+		double ron[5];
+		for (int i = 0; i < 5; i++)
+			ron[i] = yrez(i, vector1[0]) - vector1[i];
+
+		cout << vector1[0] << endl;
+		for (int i = 1; i < 5; i++)
+		{
+			cout << "\t";
+			cout << vector1[i] << " ";
+			cout << yrez(i, vector1[0]) << " "; 
+			//cout << ron[i] << " ";
+			//cout << rn[i] << " "; 
+			//cout << Rn[i] << " ";
+			if (i == 1)
+			{
+				//cout << norma(ron) << " ";
+				cout << rnloc << " " << endl;
+				//cout << norma(Rn) << " ";
+				//cout << norma(ron) / rnloc << endl;
+			}
+			else
+				cout << endl;
+		}
+		cout << endl;
+
+		for (int i = 0; i < 5; i++)
+			vector0[i] = vector1[i];
+	}
+
+	cout << "x\t y~\t y\t" << endl;
+
+	system("pause");
+	return 0;
+}
