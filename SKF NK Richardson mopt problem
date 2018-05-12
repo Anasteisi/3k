@@ -1,0 +1,265 @@
+//SKF NK Richardson mopt problem
+#include<iostream>
+#include<cmath>
+using namespace std;
+const int kfirst = 10;//parts
+const int n = 3;//points
+//const int m = n - 1;
+const int r = 2;
+const int L = 2;
+const double eps = 0.001;
+const double a = 1.7;
+const double b = 3.2;
+const double alpha = 0;
+const double beta = 0.25;
+const double e = 2.71828;
+const double delta = 0.0001;//step (integral)
+const int row_num = n, col_num = n + 1;//for Sn
+const int Rrow_num = r + 2, Rcol_num = r + 2 + 1;//for Richardson
+
+double f(double x)
+{
+	return 3 * cos(0.5*x)*pow(e, x * 0.25) + 5 * sin(2.5*x)*pow(e, (-0.33333 * x)) + 2 * x;//#2
+}
+
+double p(double x)
+{
+	return pow(x - a, -1 * alpha)*pow(b - x, -1 * beta);
+}
+
+void partially_pivot(double arr[row_num][col_num], int pivot_row, int pivot_col) // for GJ
+{
+	double temp;
+	int i, large_pivot_row = pivot_row;
+
+	for (i = pivot_row; i < row_num; i++)
+		if (arr[i][pivot_col] > arr[large_pivot_row][pivot_col])
+			large_pivot_row = i;
+
+	if (pivot_row != large_pivot_row)
+		for (i = 0; i < col_num; i++)
+		{
+			temp = arr[large_pivot_row][i];
+			arr[large_pivot_row][i] = arr[pivot_row][i];
+			arr[pivot_row][i] = temp;
+		}
+}
+
+void Gauss(double arrkoeff[row_num][col_num])
+{
+	double diagonal_element = 0, flag = 0;
+	for (int i = 0; i < row_num; i++)//GJ
+		for (int j = 0; j < col_num; j++)
+			if (i == j)
+			{
+				partially_pivot(arrkoeff, i, j);
+				diagonal_element = arrkoeff[i][j];
+				for (int l = 0; l < col_num; l++)
+					arrkoeff[i][l] /= diagonal_element;
+
+				for (int k = 0; k < row_num; k++)
+				{
+					flag = arrkoeff[k][j];
+					for (int l = 0; l < col_num; l++)
+						if (k != i)
+							arrkoeff[k][l] = (arrkoeff[k][l]) - flag * (arrkoeff[i][l]);
+				}
+			}
+}
+
+void Rpartially_pivot(double arr[Rrow_num][Rcol_num], int pivot_row, int pivot_col) // for GJ
+{
+	double temp;
+	int i, large_pivot_row = pivot_row;
+
+	for (i = pivot_row; i < Rrow_num; i++)
+		if (arr[i][pivot_col] > arr[large_pivot_row][pivot_col])
+			large_pivot_row = i;
+
+	if (pivot_row != large_pivot_row)
+		for (i = 0; i < Rcol_num; i++)
+		{
+			temp = arr[large_pivot_row][i];
+			arr[large_pivot_row][i] = arr[pivot_row][i];
+			arr[pivot_row][i] = temp;
+		}
+}
+
+void RGauss(double Rarrkoeff[Rrow_num][Rcol_num])
+{
+	double diagonal_element = 0, flag = 0;
+	for (int i = 0; i < Rrow_num; i++)//GJ
+		for (int j = 0; j < Rcol_num; j++)
+			if (i == j)
+			{
+				Rpartially_pivot(Rarrkoeff, i, j);
+				diagonal_element = Rarrkoeff[i][j];
+				for (int l = 0; l < Rcol_num; l++)
+					Rarrkoeff[i][l] /= diagonal_element;
+
+				for (int k = 0; k < Rrow_num; k++)
+				{
+					flag = Rarrkoeff[k][j];
+					for (int l = 0; l < Rcol_num; l++)
+						if (k != i)
+							Rarrkoeff[k][l] = (Rarrkoeff[k][l]) - flag * (Rarrkoeff[i][l]);
+				}
+			}
+}
+
+double SKF(int knew)
+{
+	double Sh = 0;
+	double h = (b - a) / knew;
+	for (int part = 0; part < knew; part++)
+	{
+		double a1 = a + part*h, b1 = a + (part + 1)*h;
+
+		double arrx[n];
+		double tmp1 = a1;
+		for (int i = 0; i < n; i++)
+		{
+			arrx[i] = tmp1;
+			tmp1 += (b1 - a1) / (n - 1);
+		}
+
+		double arrmu[n];
+		tmp1 = 0;
+		double g0 = a1, g1 = a1 + delta;
+		for (int j = 0; j < n; j++)
+		{
+			while (g1 <= b1)
+			{
+				double ksi = (g1 + g0) * 0.5;
+				tmp1 += p(ksi)*pow(ksi, j)*(g1 - g0);
+				g0 = g1, g1 += delta;
+			}
+			arrmu[j] = tmp1;
+			tmp1 = 0, g0 = a1, g1 = a1 + delta;
+		}
+
+		double arrkoef[row_num][col_num];
+
+		for (int i = 0; i < row_num; i++)
+			for (int j = 0; j < col_num - 1; j++)
+				arrkoef[i][j] = pow(arrx[j], i);
+		for (int i = 0; i < row_num; i++)
+			arrkoef[i][col_num - 1] = arrmu[i];
+
+		Gauss(arrkoef);
+
+		double arrA[n];
+		for (int i = 0; i < n; i++)
+			arrA[i] = arrkoef[i][col_num - 1];
+
+		for (int i = 0; i < n; i++)
+			Sh += arrA[i] * f(arrx[i]);
+	}
+	return Sh;
+}
+
+void printarr(double arrkoeff[row_num][col_num])
+{
+	for (int i = 0; i < row_num; i++)
+	{
+		for (int j = 0; j < col_num; j++)
+			cout << arrkoeff[i][j] << " ";
+		cout << endl;
+	}
+}
+
+void Rprintarr(double Rarrkoeff[Rrow_num][Rcol_num])
+{
+	for (int i = 0; i < Rrow_num; i++)
+	{
+		for (int j = 0; j < Rcol_num; j++)
+			cout << Rarrkoeff[i][j] << " ";
+		cout << endl;
+	}
+}
+
+double mopt(int kstart)
+{
+	double k1 = kstart;
+	double k2 = k1 * L;
+	double k3 = k2* L;
+
+	double tmp = SKF(k3) - SKF(k2);
+	tmp /= (SKF(k2) - SKF(k1));
+	tmp = log(abs(tmp));
+	tmp /= log(L);
+	tmp *= -1;
+	return tmp;
+}
+
+double kopt(int kstart, double m)
+{
+	double h = (b - a) / kstart;
+	double h1 = h, h2 = h / L;
+	double k1 = kstart, k2 = kstart*L;
+	double chisl = eps*(1 - pow(L, -1 * m));
+	double znam = abs(SKF(k2) - SKF(k1));
+
+	double hopt = h * pow((chisl / znam), (1 / m));
+	hopt *= 0.95;
+	double koptim = ceil((b - a) / hopt);
+
+	return koptim;
+}
+
+int main()
+{
+	double Rhi = 1;
+	double Shi = 0;
+	int step = 1;
+	double ki = kfirst;
+	while (abs(Rhi) > eps)
+	{
+		ki = kfirst * step;//problem
+		//ki = kopt(kfirst, mopt(ki)) * step;//problem
+		double hi = (b - a) / ki;
+		double Rarrkoefs[Rrow_num][Rcol_num];
+		for (int i = 0; i < Rrow_num; i++)
+		{
+			for (int j = 0; j < Rcol_num - 2; j++)
+				Rarrkoefs[i][j] = pow(hi, mopt(ki) + j);
+			Rarrkoefs[i][Rcol_num - 2] = -1;
+			Rarrkoefs[i][Rcol_num - 1] = -1 * SKF(ki);
+			ki *= L;
+			hi /= L;
+		}
+
+		RGauss(Rarrkoefs);
+
+		double arrC[Rrow_num - 1];
+		for (int i = 0; i < Rrow_num - 1; i++)
+			arrC[i] = Rarrkoefs[i][Rcol_num - 1];
+
+		Rhi = 0;
+		for (int i = 0; i < Rrow_num - 1; i++)
+			Rhi += arrC[i] * pow(hi, mopt(ki) + i);
+		step *= L;
+		cout << "wait..." << endl;
+	}
+
+	double J = 0;//integral
+	double g0 = a, g1 = a + delta;
+	while (g1 <= b)
+	{
+		double ksi = (g1 + g0) * 0.5;
+		J += p(ksi)*f(ksi)*(g1 - g0);
+		g0 = g1, g1 += delta;
+
+	}
+
+	double Ski = 0;//SKF
+	Ski = SKF(kfirst*step);
+
+	cout << fixed;
+	cout.precision(8);
+	cout << "SKF Shi = " << Ski << ", Integral = " << J << endl;
+	cout << "Rhi = " << Rhi << endl;
+
+	system("pause");
+	return 0;
+}
