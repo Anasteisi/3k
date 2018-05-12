@@ -1,0 +1,204 @@
+//IKF NK
+#include<iostream>
+using namespace std;
+const int n = 3;
+const double a = 1.7;
+const double b = 3.2;
+const double alpha = 0;
+const double beta = 0.25;
+const double e = 2.71828;
+const double delta = 0.01;
+const int row_num = n, col_num = n + 1;
+
+double f(double x)
+{
+	return 3 * cos(0.5*x)*pow(e, x * 0.25) + 5 * sin(2.5*x)*pow(e, (-0.33333 * x)) + 2 * x;//#2
+}
+
+double p(double x)
+{
+	return pow(x - a, -1 * alpha)*pow(b - x, -1 * beta);
+}
+
+double omega(double x, double arrx[n])
+{
+	double rez = 1;
+	for (int i = 0; i < n; i++)
+		rez *= (x - arrx[i]);
+	return rez;
+}
+
+double fkdx(double x, int k)
+{
+	if (k == 1)
+		return -3 * 0.5 * sin(0.5*x) * 0.25 * pow(e, x * 0.25) + 5 * 2.5*cos(2.5*x)*(-0.33333)*pow(e, (-0.33333  * x)) + 2;
+	else
+	{
+		if (k % 2 == 0)//chet
+		{
+			if (k % 4 != 0)
+				return -3 * pow(0.5, k) * cos(0.5*x) * pow(0.25, k) * pow(e, x* 0.25) - 5 * pow(2.5, k)*sin(2.5*x)*pow(-0.33333, k)*pow(e, (-0.33333 * x));
+			else
+				return 3 * pow(0.5, k) * cos(0.5*x) * pow(0.25, k) * pow(e, x* 0.25) + 5 * pow(2.5, k)*sin(2.5*x)*pow(-0.33333, k)*pow(e, (-0.33333 * x));
+		}
+		else
+		{
+			int tmp = k / 4;
+			if ((k - tmp * 4) == 3)
+				return 3 * pow(0.5, k) * sin(0.5*x) * pow(0.25, k) * pow(e, x* 0.25) - 5 * pow(2.5, k)*cos(2.5*x)*pow(-0.33333, k)*pow(e, (-0.33333 * x));
+			else//==1
+				return -3 * pow(0.5, k) * sin(0.5*x) * pow(0.25, k) * pow(e, x* 0.25) + 5 * pow(2.5, k)*cos(2.5*x)*pow(-0.33333, k)*pow(e, (-0.33333 * x));
+		}
+	}
+}
+
+double omegadx(double x, double arrx[n])
+{
+	double rez = 0, tmp = 1;
+	for (int i = 0; i < n; i++)
+	{
+		tmp = 1;
+		for (int j = 0; j < n; j++)
+		{
+			if (j != i)
+				tmp *= (x - arrx[j]);
+			else
+				continue;
+		}
+		rez += tmp;
+	}
+	return rez;
+}
+
+void partially_pivot(double arr[row_num][col_num], int pivot_row, int pivot_col) // for GJ
+{
+	double temp;
+	int i, large_pivot_row = pivot_row;
+
+	for (i = pivot_row; i < row_num; i++)
+		if (arr[i][pivot_col] > arr[large_pivot_row][pivot_col])
+			large_pivot_row = i;
+
+	if (pivot_row != large_pivot_row)
+		for (i = 0; i < col_num; i++)
+		{
+			temp = arr[large_pivot_row][i];
+			arr[large_pivot_row][i] = arr[pivot_row][i];
+			arr[pivot_row][i] = temp;
+		}
+}
+
+int main()
+{
+	double arrx[n];
+	double tmp1 = a;
+	for (int i = 0; i < n; i++)
+	{
+		arrx[i] = tmp1;
+		tmp1 += (b - a) / (n - 1);
+	}
+
+	double arrmu[n];
+	tmp1 = 0;
+	double g0 = a, g1 = a + delta;
+	for (int j = 0; j < n; j++)
+	{
+		while (g1 <= b)
+		{
+			double ksi = (g1 + g0) * 0.5;
+			tmp1 += p(ksi)*pow(ksi, j)*(g1 - g0);
+			g0 = g1, g1 += delta;
+		}
+		arrmu[j] = tmp1;
+		tmp1 = 0, g0 = a, g1 = a + delta;
+	}
+
+	double arrkoef[row_num][col_num];
+
+	for (int i = 0; i < row_num; i++)
+		for (int j = 0; j < col_num - 1; j++)
+			arrkoef[i][j] = pow(arrx[j], i);
+	for (int i = 0; i < row_num; i++)
+		arrkoef[i][col_num - 1] = arrmu[i];
+
+	double diagonal_element = 0, flag = 0;
+	for (int i = 0; i < row_num; i++)//GJ
+		for (int j = 0; j < col_num; j++)
+			if (i == j)
+			{
+				partially_pivot(arrkoef, i, j);
+				diagonal_element = arrkoef[i][j];
+				for (int l = 0; l < col_num; l++)
+					arrkoef[i][l] /= diagonal_element;
+
+				for (int k = 0; k < row_num; k++)
+				{
+					flag = arrkoef[k][j];
+					for (int l = 0; l < col_num; l++)
+						if (k != i)
+							arrkoef[k][l] = (arrkoef[k][l]) - flag * (arrkoef[i][l]);
+
+				}
+			}
+
+	double arrA[n];
+	for (int i = 0; i < n; i++)
+		arrA[i] = arrkoef[i][col_num - 1];
+
+	/*double arrAA[n];
+	for (int i = 0; i < n; i++)
+	{
+		tmp1 = 0;
+		g0 = a, g1 = a + delta;
+		while (g1 <= b)
+		{
+			double ksi = (g1 + g0) * 0.5;
+			tmp1 += p(ksi)*omega(ksi, arrx) / (ksi - arrx[i]) / omegadx(arrx[i], arrx)*(g1 - g0);
+			g0 = g1, g1 += delta;
+		}
+		arrAA[i] = tmp1;
+	}
+
+	for (int i = 0; i < n; i++)
+		cout << " A " << arrA[i];
+	cout << endl;
+
+	for (int i = 0; i < n; i++)
+		cout << " AA " << arrAA[i];
+	cout << endl;*/
+
+	double rez1 = 0;//ikf
+	for (int i = 0; i < n; i++)
+		rez1 += arrA[i] * f(arrx[i]);
+
+	double rez2 = 0;//integral
+	g0 = a, g1 = a + delta;
+	while (g1 <= b)
+	{
+		double ksi = (g1 + g0) * 0.5;
+		rez2 += p(ksi)*f(ksi)*(g1 - g0);
+		g0 = g1, g1 += delta;
+	}
+
+	double Rn1 = 0;
+	g0 = a, g1 = a + delta;
+	while (g1 <= b)
+	{
+		double ksi = (g1 + g0) * 0.5;
+		Rn1 += p(ksi)*omega(ksi, arrx)*fkdx(ksi, n)*(g1 - g0);
+		g0 = g1, g1 += delta;
+	}
+	for (int i = 1; i < n + 1; i++)
+		Rn1 /= i;
+
+	double Rn2 = rez2 - rez1;
+
+	cout << fixed;
+	cout.precision(8);
+	cout << "IKF = " << rez1 << ", Integral = " << rez2 << endl;
+	cout << "Pogreshnost' metodicheskaya ikf = " << Rn1 << endl;
+	cout << "Pogreshnost' = " << Rn2 << endl;
+
+	system("pause");
+	return 0;
+}
