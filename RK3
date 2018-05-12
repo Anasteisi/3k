@@ -1,0 +1,157 @@
+//RK3 x y~ y Rn
+#include<iostream>
+#include <cmath>
+using namespace std;
+const double a = 0, b = 5;
+const double kstart = 2000;//parts
+const double hstart = (b - a) / kstart;
+
+const double p = 3, s = 3;
+
+const double c2 = 0.2;
+const double A = 2, B = -1, C = -1;//#4, #29
+
+const double a21 = c2;
+const double b2 = 1 / (2 * c2);
+const double b1 = 1 - b2;
+
+const double e = 2.71828;
+
+double f1(double x, double y2, double y4)
+{
+	return 2 * x*pow(y2, 1 / B)*y4;
+}
+
+double f2(double x, double y3, double y4)
+{
+	return 2 * B*x*pow(e, B / C*(y3 - A))*y4;
+}
+
+double f3(double x, double y4)
+{
+	return  2 * C*x*y4;
+}
+
+double f4(double x, double y1)
+{
+	return -2 * x*log(y1);
+}
+
+void RK3(double h, double vector0[5], double vector1[5])
+{
+	vector1[0] = vector0[0] + h;
+	for (int i = 1; i < 5; i++)
+		vector1[i] = vector0[i];
+
+	double K1 = h*f1(vector0[0], vector0[2], vector0[4]);
+	double K2 = h*f1(vector0[0] + h * 0.5, vector0[2] + K1 * 0.5, vector0[4] + K1 * 0.5);
+	double K3 = h*f1(vector0[0] + h, vector0[2] - K1 + 2 * K2, vector0[4] - K1 + 2 * K2);
+	vector1[1] += 0.16666666666*(K1 + 4 * K2 + K3);
+
+	K1 = h*f2(vector0[0], vector0[3], vector0[4]);
+	K2 = h*f2(vector0[0] + h * 0.5, vector0[3] + K1 * 0.5, vector0[4] + K1 * 0.5);
+	K3 = h*f2(vector0[0] + h, vector0[3] - K1 + 2 * K2, vector0[4] - K1 + 2 * K2);
+	vector1[2] += 0.16666666666*(K1 + 4 * K2 + K3);
+
+	K1 = h*f3(vector0[0], vector0[4]);
+	K2 = h*f3(vector0[0] + h * 0.5, vector0[4] + K1 * 0.5);
+	K3 = h*f3(vector0[0] + h, vector0[4] - K1 + 2 * K2);
+	vector1[3] += 0.16666666666*(K1 + 4 * K2 + K3);
+
+	K1 = h*f4(vector0[0], vector0[1]);
+	K2 = h*f4(vector0[0] + h * 0.5, vector0[1] + K1 * 0.5);
+	K3 = h*f4(vector0[0] + h, vector0[1] - K1 + 2 * K2);
+	vector1[4] += 0.16666666666*(K1 + 4 * K2 + K3);
+}
+
+double yrez(int flag, double x)
+{
+	if (flag == 0)
+		return x;
+	if (flag == 1)
+		return pow(e, sin(x*x));
+	if (flag == 2)
+		return pow(e, B*sin(x*x));
+	if (flag == 3)
+		return C*sin(x*x) + A;
+	if (flag == 4)
+		return cos(x*x);
+}
+
+void Rnfull(double h, double vector[5], double vectorn[5], double Rn[5])
+{
+	double vector0[5];
+	for (int i = 0; i < 5; i++)
+		vector0[i] = vector[i];
+
+	double vector2n[5];
+
+	while (vector0[0] < vectorn[0])
+	{
+		RK3(h / 2, vector0, vector2n);
+		for (int i = 0; i < 5; i++)
+			vector0[i] = vector2n[i];
+	}
+
+	for (int i = 0; i < 5; i++)
+	{
+		Rn[i] = vector2n[i] - vectorn[i];
+		Rn[i] /= (1 - pow(2, -1 * p));///R2n (pow(2, p) - 1)
+	}
+}
+
+double norma(double vector[5])
+{
+	double tmp = 0;
+	for (int i = 1; i < 5; i++)
+		tmp += vector[i] * vector[i];
+	return sqrt(tmp);
+}
+
+int main()
+{
+	double vector[5];
+	vector[0] = 0;//x0
+	vector[1] = 1, vector[2] = 1, vector[3] = A, vector[4] = 1;//y1,y2,y3,y4 0
+
+	double vector0[5];
+	for (int i = 0; i < 5; i++)
+		vector0[i] = vector[i];
+
+	double h = hstart, k = kstart;
+	double vector1[5];
+	double Rn[5];
+
+	cout << fixed;
+	cout.precision(5);
+
+	cout << "Result RK2: " << endl;
+	cout << "x\t y~\t y\t Rn\t |Rn|\t" << endl;
+
+	while (vector1[0] < b)
+	{
+		RK3(h, vector0, vector1);
+
+		Rnfull(h, vector, vector1, Rn);
+
+		cout << vector1[0];
+		for (int i = 1; i < 5; i++)
+		{
+			cout << "\t" << vector1[i] << " " << yrez(i, vector1[0]) << " " << Rn[i] << " ";
+			if (i == 1)
+				cout << norma(Rn) << endl;
+			else
+				cout << endl;
+		}
+		cout << endl;
+
+		for (int i = 0; i < 5; i++)
+			vector0[i] = vector1[i];
+
+	}
+
+	cout << "x\t y~\t y\t Rn\t |Rn|\t" << endl;
+
+	system("pause");
+	return 0;
+}
